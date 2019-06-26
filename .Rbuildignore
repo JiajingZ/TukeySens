@@ -1,0 +1,4 @@
+^contour draft\.R$
+^data-raw$
+^.*\.Rproj$
+^\.Rproj\.user$
