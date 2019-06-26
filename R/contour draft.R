@@ -76,7 +76,31 @@ ggplot(ate_contour,aes(gamma_0,gamma_1,z=ate)) +
   scale_color_gradientn(colours=c("blue","light blue","white","orange","red"),name="ATE") +
   labs(title = "ATE Contour", x = expression(gamma[0]),
        y = expression(gamma[1])) +
+  theme(plot.title = element_text(hjust = 0.5)) + theme_bw()
+
+contour_plot = ggplot()+
+  theme_bw()+
+  xlab(expression(gamma[0]))+
+  ylab(expression(gamma[1]))+
+  stat_contour(data = ate_contour, aes(x = gamma_0, y = gamma_1, 
+                                       z = ate, color = ..level..), binwidth=0.5)+
+  scale_color_continuous(name = "ATE")
+
+contour_plot
+##library(directlabels)
+directlabels::direct.label(contour_plot,"bottom.pieces")
+
+
+
+ggplot(data = ate_contour, aes(x = gamma_0, y = gamma_1))+
+  geom_contour(aes(z=ate), binwidth=1)+
+  metR::geom_text_contour(aes(z=ate), stroke = 0.3)+
+  xlab(expression(gamma[0]))+
+  ylab(expression(gamma[1]))+
+  ggtitle("Contour plot")+
   theme(plot.title = element_text(hjust = 0.5))
+
+
 
 
 

@@ -1,0 +1,23 @@
+Package: TukeySens
+Type: Package
+Title: Sensitivity Analysis for Causal Inference Based on Tukey's Factorization
+Version: 0.0.0.9000
+Authors@R: c(
+    person("Jiajing", "Zheng", email = "jiajing_zheng@uscb.edu", role = c("aut","cre")),
+    person("Alex", "Franks", email = "afranks@pstat.ucsb.edu", role = "aut"),
+    person("Alex", "D'Amour", email = "damour@google.com", role = "aut"),
+    person("Avi", "Feller", email = "afeller@berkeley.edu", role = "aut"))
+Description: Assessing sensitivity of violation to unconfoundedness assumption is important
+    in observational causal inference studies. This package realizes the method proposed by
+    \href{https://arxiv.org/abs/1809.00399}{Franks et al. (2018)}......
+License: GLP-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Imports:
+    BART (>= 1.9)
+Depends:
+    R (>= 3.5.1),
+    tidyverse (>= 1.2.1)
+Remotes: github::rlbarter/superheat
+    

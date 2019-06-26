@@ -1,70 +1,65 @@
 #' @title Calibrate sensitivity parameters based on pre-treatment variables
 #'
-#' @description create a plot....
-#' @param x a \code{tibble} or data frame of observed pre-treatment covariates
+#' @description Calibrate the magnitude of sensitivity parameters to the amount of variation in the treatment 
+#'              assignment \code{T} that is explained by outcome \code{Y(t)}, above and beyond what is accounted
+#'              for by observed pre-treatment variables \code{X}.
+#' @param x a \code{tibble} or data frame of observed pre-treatment variables
 #' @param trt a vector of binary treatment indicators
 #' @param y a vector of outcomes
-#' @param gamma_seq a vector of values for sensitivity parameter to be investiaged
-#' @return \code{caliplot} returns a plot comparing the effect of outcome with the effect of the most significant
-#'         four observed explanatory variables in the assumed treatment model for sensitivity analysis.
+#' @param gamma_seq a vector of values for sensitivity parameter \eqn{\gamma_t} to be investiaged
+#' @section Details: \code{caliplot} returns a plot of sensitivity parameter \eqn{\gamma_t} vs partial coefficient of 
+#'          variation from outcome \code{Y}, \eqn{\rho^2_{Y|X}}. For comparison, the largest four partial coefficients 
+#'          of variation from covariates are also plotted if the number of observed covariates is larger or equal to four;
+#'          otherwise, all the partial coefficients of variation from covariates are plotted.
 #' @export
 #'
 #' @examples
-#' # load data #
-#' library(foreign)
-#' NHANES <- read.dta(system.file("extdata", "NHANES3hbp_dbp.dta",
-#'           package = "TukeySensitivity")) %>% as_tibble
-#' NHANES <- NHANES %>% dplyr::filter(ave_dbp > 30)
-#' x_train_joint <- NHANES %>% select(-one_of(c("ave_dbp", "ave_sbp", "trt_sbp", "d_ctrl", "num_aht")))
-#'
-#' # Observed Dependent Variables #
-#' x = x_train_joint %>% select(-one_of("trt_dbp"))
+#' # Observed Pre-treatment Variables #
+#' x = NHANES %>% select(-one_of("trt_dbp", "ave_dbp"))
 #'
 #' # Treatment #
-#' trt = x_train_joint %>% select(trt_dbp)
+#' trt = NHANES %>% select(trt_dbp)
 #'
 #' # Outcomes #
-#' y_train_joint = NHANES %>% select(ave_dbp)
+#' y = NHANES %>% select(ave_dbp)
 #'
 #' # Sensitivity Parameter Sequence #
-#' gamma = seq(0.01, 0.05, by=0.001)
+#' gamma = seq(0.01, 0.1, by = 0.001)
 #'
 #' # plot #
-#' caliplot(x,trt,y_train_joint,gamma)
+#' caliplot(x, trt, y, gamma)
 
 
-
-caliplot <- function( x, trt, y, gamma_seq)
-{
+caliplot <- function( x, trt, y, gamma_seq){
   # scale the observed Covariates #
   x_scaled = x %>% mutate_all(funs(scale(.)))
-  names(trt)="trt"
+  names(trt) = "trt"
 
   # estimated m(x) #
-  propensity_fit = glm(trt ~., data=cbind(x_scaled,trt), family=binomial(logit))
+  propensity_fit = glm(trt ~., data = cbind(x_scaled,trt), family = binomial(logit))
   lp <- propensity_fit$linear.predictors
 
   # rho_{X_j|{X_{-j}}
-  max_change <- sapply(colnames(x), function(nm) {
-    glm_fit <- glm(as.formula(paste0("trt ~ .-", nm)), data=cbind(x,trt), family=binomial(logit))
+  max_change <- sapply(colnames(x), function(nm){
+    glm_fit <- glm(as.formula(paste0("trt ~ .-", nm)), data = cbind(x,trt), family = binomial(logit))
     lp2 <- glm_fit$linear.predictors
     Rw_full <- var(lp) / (var(lp) + pi^2/3)
     Rw_sub <-  var(lp2) / (var(lp2) + pi^2/3)
-    (Rw_full - Rw_sub)/(1-Rw_sub)
+    (Rw_full - Rw_sub) / (1 - Rw_sub)
   })
 
-  max_change=sort(max_change, decreasing=TRUE)
+  max_change = sort(max_change, decreasing = TRUE)
 
   # rho_{Y|X} #
-  compute_rho <- function(gamma.tilde) ## the imput "gamma.tilde" of this function should be the coefficient of scaled Y
-  {                                    ## gamma.tilde = gamma*sigma(Y)
+  ## the imput "gamma.tilde" of this function should be the coefficient of scaled Y
+  ## gamma.tilde = gamma*sigma(Y)
+  compute_rho <- function(gamma.tilde){                                    
     reduced <- (pi^2/3) / (var(lp) + pi^2/3)  ## 1-rho_x^2
     full <- (pi^2/3) / (var(lp) + gamma.tilde^2 + pi^2/3) ## 1-rho_{x,y}^2
     (reduced - full) / reduced ## eq 40
   }
 
-  Index_covariates = function(max_change)
-  {
+  Index_covariates <- function(max_change){
     if (length(max_change) < 4)
       index = names(max_change)
     else
@@ -74,15 +69,14 @@ caliplot <- function( x, trt, y, gamma_seq)
 
   # plot #
   toplot <- max_change[Index_covariates(max_change)]
-  tibble(gamma=gamma_seq, rho2=sapply(gamma_seq*sd(as.matrix(y_train_joint)), compute_rho)) %>%
-    ggplot2::ggplot() + geom_line(aes(x=gamma, y=rho2), size=1.5) +
-    geom_hline(data=tibble(hline=toplot, Predictor=Index_covariates(max_change)),
-               aes(yintercept=toplot, col=Predictor), linetype="dashed", size=1.2) +
-    xlab(expression(gamma[t])) + ylab(substitute(rho[m]^2, list(m="Y|X"))) +
-    guides(color=guide_legend(title=substitute(rho[m]^2, list(m=bquote(X[j]~"|"~X[-j]))),
-                              title.hjust=0.5, legend.title=element_text(size=14))) +
-    theme(axis.title=element_text(size=20), axis.text=element_text(size=16))
-
+  tibble(gamma = gamma_seq, rho2 = sapply(gamma_seq*sd(as.matrix(y_train_joint)), compute_rho)) %>%
+    ggplot2::ggplot() + geom_line(aes(x = gamma, y=rho2), size = 1.5) +
+    geom_hline(data = tibble(hline = toplot, Predictor = Index_covariates(max_change)),
+               aes(yintercept = toplot, col=Predictor), linetype="dashed", size = 1.2) +
+    xlab(expression(gamma[t])) + ylab(substitute(rho[m]^2, list(m = "Y|X"))) +
+    guides(color = guide_legend(title = substitute(rho[m]^2, list(m = bquote(X[j]~"|"~X[-j]))),
+                              title.hjust = 0.5, legend.title = element_text(size = 14))) +
+    theme(axis.title = element_text(size = 20), axis.text = element_text(size = 16))
 }
 
 
