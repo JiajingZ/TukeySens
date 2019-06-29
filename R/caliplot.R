@@ -69,7 +69,7 @@ caliplot <- function( x, trt, y, gamma_seq){
 
   # plot #
   toplot <- max_change[Index_covariates(max_change)]
-  tibble(gamma = gamma_seq, rho2 = sapply(gamma_seq*sd(as.matrix(y_train_joint)), compute_rho)) %>%
+  tibble(gamma = gamma_seq, rho2 = sapply(gamma_seq*sd(as.matrix(y)), compute_rho)) %>%
     ggplot2::ggplot() + geom_line(aes(x = gamma, y=rho2), size = 1.5) +
     geom_hline(data = tibble(hline = toplot, Predictor = Index_covariates(max_change)),
                aes(yintercept = toplot, col=Predictor), linetype="dashed", size = 1.2) +
