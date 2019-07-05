@@ -170,10 +170,10 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
     ## Correct mean of missing potential outcomes ##
     ## dim = n(draws) * n(obs) * n(gamma)
     mu_ctrl_test_corrected_select <- mu_ctrl_test %o% rep(1, nrow(gamma_select)) +
-      matrix(sig_ctrl_obs^2, nrow=length(mu_ctrl_test), ncol=ncol(mu_ctrl_test)) %o% gamma_select[, 1]
+      matrix(sig_ctrl_obs^2, nrow=nrow(mu_ctrl_test), ncol=ncol(mu_ctrl_test)) %o% gamma_select[, 1]
     
     mu_trt_test_corrected_select <- mu_trt_test %o% rep(1, nrow(gamma_select)) -
-      matrix(sig_trt_obs^2, nrow=length(mu_trt_test), ncol=ncol(mu_trt_test)) %o% gamma_select[, 2]
+      matrix(sig_trt_obs^2, nrow=nrow(mu_trt_test), ncol=ncol(mu_trt_test)) %o% gamma_select[, 2]
     
     
     nsample = nrow(mu_trt_obs)
