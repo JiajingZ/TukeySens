@@ -16,7 +16,7 @@ heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl,
 
 \item{y_ctrl}{a vector of outcomes of the control group}
 
-\item{p}{a number of probablity between 0 and 1.}
+\item{prob}{a number of probablity between 0 and 1.}
 
 \item{largest_effect}{the largest magnitude of sensitivity parameter to be investigated}
 
@@ -47,7 +47,7 @@ NHANES_ctrl <- NHANES \%>\% dplyr::filter(trt_dbp == 0)
 x_ctrl <- NHANES_ctrl \%>\% select(-one_of("trt_dbp", "ave_dbp"))
 y_ctrl <- NHANES_ctrl \%>\% select(ave_dbp)
 
-## ATE Heatmap ##
-heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, p = 0.63, largest_effect = 0.05)
-heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, p = 0.63, largest_effect = 0.05, joint = TRUE)
+## QTE Heatmap ##
+heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, prob = 0.63, largest_effect = 0.05)
+heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, prob = 0.63, largest_effect = 0.05, joint = TRUE)
 }

@@ -8,7 +8,7 @@
 #' @param y_trt a vector of outcomes of the treatment group
 #' @param x_ctrl a \code{tibble} or data frame that contains observed pre-treatment variables of the control group
 #' @param y_ctrl a vector of outcomes of the control group
-#' @param p a number of probablity between 0 and 1.
+#' @param prob a number of probablity between 0 and 1.
 #' @param largest_effect the largest magnitude of sensitivity parameter to be investigated
 #' @param gamma_length desired length of sensitivity parameter sequence, which needs to be an odd integer
 #' @param joint logical. If TURE, the mean surface and residual variance will be estimated jointly for both treatment 
@@ -31,14 +31,14 @@
 #' x_ctrl <- NHANES_ctrl %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 #' 
-#' ## ATE Heatmap ##
-#' heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, p = 0.63, largest_effect = 0.05)
-#' heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, p = 0.63, largest_effect = 0.05, joint = TRUE)
+#' ## QTE Heatmap ##
+#' heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, prob = 0.63, largest_effect = 0.05)
+#' heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, prob = 0.63, largest_effect = 0.05, joint = TRUE)
 
 
 
 
-heatmap_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, p, largest_effect, gamma_length = 11, joint = FALSE){
+heatmap_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, prob, largest_effect, gamma_length = 11, joint = FALSE){
   if(joint){
     ## prepare joint dataset ##
     x_joint = rbind(x_trt, x_ctrl)
@@ -57,24 +57,55 @@ heatmap_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, p, largest_effect, gamma_le
     
     sigma_joint <- joint_bart_fit$sigma[101:1100]
     
-    nctrl <- ncol(mu_ctrl_obs_joint)
-    ntreat <- ncol(mu_ctrl_test_joint)
-    q <- rbeta(1000, ntreat + 1, nctrl + 1)
-    
     gamma_0 <- c(seq(from = -largest_effect, to = 0, length.out = (gamma_length + 1) / 2),
                  seq(from= 0, to = largest_effect, length.out = (gamma_length + 1) / 2)[-1])
     gamma_1 <- gamma_0
     gamma_grid <- expand.grid(gamma_0, gamma_1)
     
-    tt_joint <- mu_trt_obs_joint %o% rep(1, nrow(gamma_grid)) -  mu_ctrl_test_joint %o% rep(1, nrow(gamma_grid)) -
-      matrix(sigma_joint^2, nrow = length(sigma_joint), ncol = ncol(mu_trt_obs_joint)) %o% gamma_grid[, 1]
-    tc_joint <- mu_trt_test_joint %o% rep(1, nrow(gamma_grid)) - mu_ctrl_obs_joint %o% rep(1, nrow(gamma_grid)) -
-      matrix(sigma_joint^2, nrow = length(sigma_joint), ncol = ncol(mu_trt_test_joint)) %o% gamma_grid[, 2]
+    mu_ctrl_test_joint_corrected <- mu_ctrl_test_joint %o% rep(1, nrow(gamma_grid)) +
+      matrix(sigma_joint^2, nrow = nrow(mu_ctrl_test_joint), ncol=ncol(mu_ctrl_test_joint)) %o% gamma_grid[, 1]
     
-    qtt_joint <- apply(tt_joint, c(1, 3), quantile, p)
-    qtc_joint <- apply(tc_joint, c(1, 3), quantile, p)
+    mu_trt_test_joint_corrected <- mu_trt_test_joint %o% rep(1, nrow(gamma_grid)) -
+      matrix(sigma_joint^2, nrow = nrow(mu_trt_test_joint), ncol=ncol(mu_trt_test_joint)) %o% gamma_grid[, 2]
     
-    qte_joint <- q * qtt_joint + (1-q) * qtc_joint
+    nsample = nrow(mu_ctrl_obs_joint)
+    n = nrow(y_trt) + nrow(y_ctrl)
+    
+    get_quantile = function(prob, cumfun, xmin_init, xmax_init, prec = 1e-5){
+      binary_search = function(prob, xmin, xmax){
+        xmid = (xmin + xmax)/2
+        prob_mid = cumfun(xmid)
+        
+        if(abs(prob - prob_mid) < prec)
+          return(xmid)
+        else if (prob_mid < prob)
+          return(binary_search(prob, xmid, xmax))
+        else 
+          return(binary_search(prob, xmin, xmid))
+      }
+      binary_search(prob, xmin_init, xmax_init)
+    }
+
+    qte_joint = array(dim=c(nsample, nrow(gamma_grid)))
+    for(i in 1:nsample){
+      print(i)
+      for(k in 1:nrow(gamma_grid)){
+        print(k)
+        Y0comp_cum = Vectorize(function(y)
+          1/n*sum(c(pnorm(y, mu_ctrl_obs_joint[i,], sigma_joint[i]), 
+                    pnorm(y, mu_ctrl_test_joint_corrected[i, ,k], sigma_joint[i]))))
+        ## complete distribution of Y(1) ##
+        Y1comp_cum = Vectorize(function(y)
+          1/n*sum(c(pnorm(y, mu_trt_obs_joint[i,], sigma_joint[i]), 
+                    pnorm(y, mu_trt_test_joint_corrected[i, ,k], sigma_joint[i]))))
+        
+        q0 = get_quantile(prob, function(y) Y0comp_cum(y), -1000, 1000)
+        
+        q1 = get_quantile(prob, function(y) Y1comp_cum(y), -1000, 1000)
+        
+        qte_joint[i, k] = q1 - q0
+      }
+    }
     
     qte_mean_joint <- matrix(apply(qte_joint, 2, mean), byrow = T,
                            nrow = length(gamma_0), ncol = length(gamma_0))
@@ -92,8 +123,8 @@ heatmap_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, p, largest_effect, gamma_le
     
     superheat::superheat(qte_mean_joint,
                          heat.pal = c("blue", "light blue", "white", "orange", "red"),
-                         heat.lim = round(c(-max(abs(ate_mean_joint)), max(abs(ate_mean_joint)))),
-                         title = paste("Heat Map for ", as.character(p*100),"% QTE", sep=""),
+                         heat.lim = round(c(-max(abs(qte_mean_joint)), max(abs(qte_mean_joint)))),
+                         title = paste("Heat Map of ", as.character(prob*100),"% QTE for Pooled Model", sep=""),
                          title.alignment = "center",
                          column.title = "gamma0", row.title = "gamma1",
                          legend.breaks = round(seq(from = -max(abs(qte_joint)), to = max(abs(qte_joint)), length.out = 5)),
@@ -133,31 +164,61 @@ heatmap_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, p, largest_effect, gamma_le
     mu_ctrl_test <- ctrl_bart_fit$yhat.test  ## 1000 draws * n_trt obs
     sig_ctrl_obs <- ctrl_bart_fit$sigma[101:1100]
     
-    # sample weight from posterior of f(T) #
-    q <- rbeta(1000, nrow(x_train_trt) + 1, nrow(x_train_ctrl) + 1)
-    
     # gamma.grid #
     gamma_0 <- c(seq(from = -largest_effect, to = 0, length.out = (gamma_length + 1) / 2),
                  seq(from= 0, to = largest_effect, length.out = (gamma_length + 1) / 2)[-1])
     gamma_1 <- gamma_0
     gamma_grid <- expand.grid(gamma_0, gamma_1)
     
-    tt <- mu_trt_obs %o% rep(1, nrow(gamma_grid)) -  mu_ctrl_test %o% rep(1, nrow(gamma_grid)) -
-      matrix(sig_trt_obs^2, nrow = length(sig_trt_obs), ncol = ncol(mu_trt_obs)) %o% gamma_grid[, 1]
-    tc <- mu_trt_test %o% rep(1, nrow(gamma_grid)) -
-      matrix(sig_ctrl_obs^2, nrow = length(sig_ctrl_obs), ncol = ncol(mu_trt_test)) %o% gamma_grid[, 2] -
-      mu_ctrl_obs %o% rep(1, nrow(gamma_grid))
-    # E(Y(1)-Y(0)|T=1) #
-    qtt <- apply(tt, c(1, 3), quantile, p)
-    # E(Y(1)-Y(0)|T=0) #
-    qtc <- apply(tc, c(1, 3), quantile, p)
-    # average treatment effect E(Y(1)-Y(0)) #
-    qte <- q * qtt + (1-q) * qtc ## ndpost*(n_gamma0*n_gamma1)
+    mu_ctrl_test_corrected <- mu_ctrl_test %o% rep(1, nrow(gamma_grid)) +
+      matrix(sig_ctrl_obs^2, nrow = nrow(mu_ctrl_test), ncol=ncol(mu_ctrl_test)) %o% gamma_grid[, 1]
     
-    qte_mean_mat <- matrix(apply(qte, 2, mean), byrow = T,
+    mu_trt_test_corrected <- mu_trt_test %o% rep(1, nrow(gamma_grid)) -
+      matrix(sig_trt_obs^2, nrow = nrow(mu_trt_test), ncol=ncol(mu_trt_test)) %o% gamma_grid[, 2]
+    
+    nsample = nrow(mu_ctrl_obs)
+    n = nrow(y_trt) + nrow(y_ctrl)
+    
+    get_quantile = function(prob, cumfun, xmin_init, xmax_init, prec = 1e-5){
+      binary_search = function(prob, xmin, xmax){
+        xmid = (xmin + xmax)/2
+        prob_mid = cumfun(xmid)
+        
+        if(abs(prob - prob_mid) < prec)
+          return(xmid)
+        else if (prob_mid < prob)
+          return(binary_search(prob, xmid, xmax))
+        else 
+          return(binary_search(prob, xmin, xmid))
+      }
+      binary_search(prob, xmin_init, xmax_init)
+    }
+    
+    qte = array(dim=c(nsample, nrow(gamma_grid)))
+    for(i in 1:nsample){
+      print(i)
+      for(k in 1:nrow(gamma_grid)){
+        print(k)
+        Y0comp_cum = Vectorize(function(y)
+          1/n*sum(c(pnorm(y, mu_ctrl_obs[i,], sig_ctrl_obs[i]), 
+                    pnorm(y, mu_ctrl_test_corrected[i, ,k], sig_ctrl_obs[i]))))
+        ## complete distribution of Y(1) ##
+        Y1comp_cum = Vectorize(function(y)
+          1/n*sum(c(pnorm(y, mu_trt_obs[i,], sig_trt_obs[i]), 
+                    pnorm(y, mu_trt_test_corrected[i, ,k], sig_trt_obs[i]))))
+        
+        q0 = get_quantile(prob, function(y) Y0comp_cum(y), -1000, 1000)
+        
+        q1 = get_quantile(prob, function(y) Y1comp_cum(y), -1000, 1000)
+        
+        qte[i, k] = q1 - q0
+      }
+    }
+    
+    qte_mean <- matrix(apply(qte, 2, mean), byrow = T,
                      nrow = length(gamma_1), ncol = length(gamma_0))
-    colnames(qte_mean_mat) <- gamma_0
-    rownames(qte_mean_mat) <- gamma_1
+    colnames(qte_mean) <- gamma_0
+    rownames(qte_mean) <- gamma_1
     
     prob_mat1 <- matrix(apply(qte, 2, function(x) mean(x < 0)), byrow = T,
                         nrow = length(gamma_1), ncol = length(gamma_0)) ## the prob(ate_mean < 0) in different case of gamma
@@ -168,10 +229,10 @@ heatmap_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, p, largest_effect, gamma_le
     ns_elements_indep <- matrix("", nrow = nrow(ns_elements_bool), ncol = ncol(ns_elements_bool))
     ns_elements_indep[ns_elements_bool] <- "NS"
     
-    superheat::superheat(qte_mean_mat,
+    superheat::superheat(qte_mean,
                          heat.pal = c("blue", "light blue", "white", "orange", "red"),
                          heat.lim = round(c(-max(abs(qte)), max(abs(qte)))),
-                         title =paste("Heat Map for ", as.character(p*100), "% QTE", sep=""),
+                         title =paste("Heat Map for ", as.character(prob*100), "% QTE", sep=""),
                          title.alignment = "center",
                          column.title = "gamma0",
                          row.title = "gamma1",
