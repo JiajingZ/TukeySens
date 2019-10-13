@@ -18,8 +18,8 @@ ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
 \item{gamma_select}{a matrix with selected settings for sensitivity parameters in rows}
 }
 \description{
-Visualize the 95\% posterior credible band for the quantile treatment effects, for
-       for selected settings of the sensitivity parameters.
+Visualize the 95\% posterior credible band of the quantile treatment effects for
+       selected settings of the sensitivity parameters.
 }
 \section{Details}{
  

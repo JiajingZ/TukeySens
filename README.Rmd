@@ -8,13 +8,13 @@ output: github_document
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "README-"
+  fig.path = "man/figures/figures-"
 )
 library(TukeySens)
 ```
 
 # TukeySens
-The sensitivity analysis method based on Tukey's factorization allows flexible models for observed data and clean separation of the identified and unidentified parts of the sensitivity model. For theoretical details, [please see the full paper](https://arxiv.org/abs/1809.00399). This package provides graphical tools that investigators can use to refine their sensitivity analyses and visualized the results.
+This package realizes the sensitivity analysis method based on Tukey's factorization, which allows flexible models for observed data and clean separation of the identified and unidentified parts of the sensitivity model. For theoretical details, [please see the full paper](https://arxiv.org/abs/1809.00399).  Specifically, TukeySens provides graphical tools that investigators can use to refine their sensitivity analyses and visualize the results.
 
 # How to install the package
 
@@ -32,8 +32,8 @@ library(TukeySens)
 ```
 
 
-First, calibrate the sensitivity parameters 
-```{r}
+## Calibration
+```{r,}
 # Observed Pre-treatment Variables 
 x = NHANES %>% select(-one_of("trt_dbp", "ave_dbp"))
 # Treatment 
@@ -46,9 +46,10 @@ gamma = seq(0.01, 0.1, by = 0.001)
 caliplot(x, trt, y, gamma)
 ```
 
-Based on above plot, limit the magnitude of sensitivity parameters with respect to body mass index (bmi), one of the most important predictors in terms of partial variance explained.
+Based on the above plot, we may want to limit the magnitude of sensitivity parameter $\gamma_t$ with respect to body mass index (bmi), one of the most important predictors in terms of partial variance explained. Hence, we set $|\gamma_t| \ \leq \ 0.05$ for the following analysis.
 
-Then, the Average Treatment Effect (ATE) can be visualized by heatmap
+## Result Visualization
+### ATE by Heatmap
 ```{r, message = F, warning = F, eval = F}
 # Observed data in treatment group
 NHANES_trt <- NHANES %>% dplyr::filter(trt_dbp == 1)
@@ -63,19 +64,29 @@ y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 # ATE Heatmap 
 # fit outcome separately
 heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05)
+```
+![](man/figures/heatmap_ate_separate.png)
+
+```{r, eval = F}
 # fit outcome jointly
 heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
 ```
+![](man/figures/heatmap_ate_joint.png)
 
-Also, the Quantile Treatment Effect (ATE) can be visualzied by ribbon plot
+## QTE by Ribbon Plot
 ```{r, warning = F, message = F, eval = F}
 # Ribbon Plot of QTE
 gamma_select = rbind(c(0, 0), c(-0.03, 0.05), c(0.05, -0.02), c(-0.01, 0.01))
 ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select)
+```
+![](man/figures/ribbon_qte_separate.png)
+
+```{r, eval = F}
 ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = TRUE)
 ```
+![](man/figures/ribbon_qte_pooled.png)
 
-Furthermore, the ATE can be visualized by contour plot and QTE can be visualized by heatmap plot.
+In addition, the ATE can be visualized by contour plot and QTE can be visualized by heatmap plot.
 
 
 
