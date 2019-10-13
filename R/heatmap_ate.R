@@ -1,36 +1,52 @@
-#' @title Visualize ATE estimates by Heatmap
+#' @title Visualize ATE Estimates by Heatmap
 #'
 #' @description Visualize Average Treatment Effect (ATE) estimates for a grid of sensitivity parameters. "NS" is used to denote 
 #'              "not significant", meaning that the 95\% posterior credible interval of the ATE contains 0.
 #' @usage heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, 
 #'             largest_effect, gamma_length = 11)
-#' @param x_trt a \code{tibble} or data frame that contains observed pre-treatment variables of the treatment group
-#' @param y_trt a vector of outcomes of the treatment group
-#' @param x_ctrl a \code{tibble} or data frame that contains observed pre-treatment variables of the control group
-#' @param y_ctrl a vector of outcomes of the control group
-#' @param largest_effect the largest magnitude of sensitivity parameter to be investigated
-#' @param gamma_length desired length of sensitivity parameter sequence, which needs to be an odd integer
+#' @param x_trt a \code{tibble} or data frame with observed pre-treatment variables for the treatment group
+#' @param y_trt a vector with outcomes for the treatment group
+#' @param x_ctrl a \code{tibble} or data frame with observed pre-treatment variables for the control group
+#' @param y_ctrl a vector with outcomes for the control group
+#' @param largest_effect the largest magnitude of sensitivity parameter to be considered, chosen from \code{\link{caliplot}}
+#' @param gamma_length chosen length of sensitivity parameter sequence, which needs to be an odd integer
 #' @param joint logical. If TURE, the mean surface and residual variance will be estimated jointly for both treatment 
 #'              groups; if FALSE (default), the mean surface and residual variance will be estimated independently for
 #'              each treatment group.
 #' @section Details: 
-#'          The treatment assignment model is specified as:
-#'          \deqn{f(T=1 \mid Y(t),X) = \text{logit}^{-1}\{ \alpha_t(X)+\gamma_t's_t(Y(t)) \}}
+#'          The Average Treatment Effect is defined as:
+#'          \deqn{\tau^{ATE} := E[Y(1) - Y(0)] = E[Y(1)] - E(Y(0))}
+#'          For each t, the complete-data distribution for each potential outcome can be written as a mixture of 
+#'          the distribution of observed and missing outcomes:
+#'          \deqn{f(Y(t) \mid X) = f(T = t \mid X)f_t^{obs}(Y(t) \mid T = t, X) + 
+#'          f(T = 1-t \mid X)f_t^{mis}(Y(t) \mid T = 1 - t, X).}
+#'          The logistic selection with mixtures of exponential families (logistic-mEF models) have been considered, 
+#'          the marginal selection functions in each arm are specified as logistic in the potential outcomes, and the 
+#'          observed data is modeled with a mixture of exponential family distributions, which can be identified using
+#'          flexible nonparametric or machine learning method. 
+#'          Specifically, the treatment assignment model is posited as:
+#'          \deqn{f(T=1 \mid Y(t),X) = \text{logit}^{-1}\{ \alpha_t(X)+\gamma_t's_t(Y(t)) \},}
+#'          where \eqn{\text{logit}^{-1}(x) = (1 + exp(-x))^{-1}}. This specification has sensitivity parameters
+#'          \eqn{\gamma = (\gamma_0, \gamma_1)}, which describe how treatment assignment depends marginally on
+#'          each potential outcome, and a parmeter \eqn{\alpha_t(X)} in each arm that is identified by the observed 
+#'          data once \eqn{gamma_t} is specified. \cr
+#'          Under these settings, the missing outcome distribution can be infered as a tilt of the observed outcome 
+#'          distribution.
 #'          
 #' @export
 #'
 #' @examples
-#' ## Observed data in treatment group ##
+#' # Observed data in treatment group
 #' NHANES_trt <- NHANES %>% dplyr::filter(trt_dbp == 1)
 #' x_trt <- NHANES_trt %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_trt <- NHANES_trt %>% select(ave_dbp)
 #'
-#' ## Observed data in control group ##
+#' # Observed data in control group 
 #' NHANES_ctrl <- NHANES %>% dplyr::filter(trt_dbp == 0)
 #' x_ctrl <- NHANES_ctrl %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 #' 
-#' ## ATE Heatmap ##
+#' # ATE Heatmap 
 #' heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05)
 #' heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
 

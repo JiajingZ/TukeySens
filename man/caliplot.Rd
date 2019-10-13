@@ -7,13 +7,13 @@
 caliplot(x, trt, y, gamma_seq)
 }
 \arguments{
-\item{x}{a \code{tibble} or data frame of observed pre-treatment variables}
+\item{x}{a \code{tibble} or data frame with observed pre-treatment variables}
 
-\item{trt}{a vector of binary treatment indicators}
+\item{trt}{a vector with binary treatment indicators}
 
-\item{y}{a vector of outcomes}
+\item{y}{a vector with outcomes}
 
-\item{gamma_seq}{a vector of values for sensitivity parameter \eqn{\gamma_t} to be investiaged}
+\item{gamma_seq}{a vector with chosen values for sensitivity parameter \eqn{\gamma_t}}
 }
 \description{
 Calibrate the magnitude of sensitivity parameters to the amount of variation in the treatment 
@@ -28,18 +28,18 @@ Calibrate the magnitude of sensitivity parameters to the amount of variation in 
 }
 
 \examples{
-# Observed Pre-treatment Variables #
+# Observed Pre-treatment Variables 
 x = NHANES \%>\% select(-one_of("trt_dbp", "ave_dbp"))
 
-# Treatment #
+# Treatment 
 trt = NHANES \%>\% select(trt_dbp)
 
-# Outcomes #
+# Outcomes 
 y = NHANES \%>\% select(ave_dbp)
 
-# Sensitivity Parameter Sequence #
+# Sensitivity Parameter Sequence 
 gamma = seq(0.01, 0.1, by = 0.001)
 
-# plot #
+# plot 
 caliplot(x, trt, y, gamma)
 }

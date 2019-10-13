@@ -2,25 +2,25 @@
 % Please edit documentation in R/heatmap_qte.R
 \name{heatmap_qte}
 \alias{heatmap_qte}
-\title{Visualize QTE estimates by Heatmap}
+\title{Visualize QTE Estimates by Heatmap}
 \usage{
 heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, 
             largest_effect, gamma_length = 11)
 }
 \arguments{
-\item{x_trt}{a \code{tibble} or data frame that contains observed pre-treatment variables of the treatment group}
+\item{x_trt}{a \code{tibble} or data frame with observed pre-treatment variables for the treatment group}
 
-\item{y_trt}{a vector of outcomes of the treatment group}
+\item{y_trt}{a vector with outcomes for the treatment group}
 
-\item{x_ctrl}{a \code{tibble} or data frame that contains observed pre-treatment variables of the control group}
+\item{x_ctrl}{a \code{tibble} or data frame with observed pre-treatment variables for the control group}
 
-\item{y_ctrl}{a vector of outcomes of the control group}
+\item{y_ctrl}{a vector with outcomes for the control group}
 
 \item{prob}{a number of probablity between 0 and 1.}
 
-\item{largest_effect}{the largest magnitude of sensitivity parameter to be investigated}
+\item{largest_effect}{the largest magnitude of sensitivity parameter to be considered, chosen from \code{\link{caliplot}}}
 
-\item{gamma_length}{desired length of sensitivity parameter sequence, which needs to be an odd integer}
+\item{gamma_length}{chosen length of sensitivity parameter sequence, which needs to be an odd integer}
 
 \item{joint}{logical. If TURE, the mean surface and residual variance will be estimated jointly for both treatment 
 groups; if FALSE (default), the mean surface and residual variance will be estimated independently for
@@ -32,22 +32,24 @@ Visualize  Quantile Treatment Effect (QTE) estimates for a grid of sensitivity p
 }
 \section{Details}{
  
-         The treatment assignment model is specified as:
-         \deqn{f(T=1 \mid Y(t),X) = \text{logit}^{-1}\{ \alpha_t(X)+\gamma_t's_t(Y(t)) \}}
+         The quantile treatment effect is defined as
+         \deqn{\tau_q = Q_q(Y(1)) - Q_q(Y(0)),}
+         the difference in the q-th treatment quantile, \eqn{Q_q(Y(1))}, and control quantile, \eqn{Q_q(Y(0))}. \cr
+         For more details of the method, please see \code{\link{heatmap_ate}}.
 }
 
 \examples{
-## Observed data in treatment group ##
+# Observed data in treatment group 
 NHANES_trt <- NHANES \%>\% dplyr::filter(trt_dbp == 1)
 x_trt <- NHANES_trt \%>\% select(-one_of("trt_dbp", "ave_dbp"))
 y_trt <- NHANES_trt \%>\% select(ave_dbp)
 
-## Observed data in control group ##
+# Observed data in control group
 NHANES_ctrl <- NHANES \%>\% dplyr::filter(trt_dbp == 0)
 x_ctrl <- NHANES_ctrl \%>\% select(-one_of("trt_dbp", "ave_dbp"))
 y_ctrl <- NHANES_ctrl \%>\% select(ave_dbp)
 
-## QTE Heatmap ##
+# QTE Heatmap
 heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, prob = 0.63, largest_effect = 0.05)
 heatmap_qte(x_trt, y_trt, x_ctrl, y_ctrl, prob = 0.63, largest_effect = 0.05, joint = TRUE)
 }

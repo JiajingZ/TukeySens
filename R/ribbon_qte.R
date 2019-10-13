@@ -1,42 +1,46 @@
-#' @title Visualize QTE estimates by Ribbon Plot
+#' @title Visualize QTE Estimates by Ribbon Plot
 #'
-#' @description ....
+#' @description Visualize the 95\% posterior credible band of the quantile treatment effects for
+#'        selected settings of the sensitivity parameters.
 #' @usage ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
-#' @param x_trt a \code{tibble} or data frame that contains observed pre-treatment variables of the treatment group
-#' @param y_trt a vector of outcomes of the treatment group
-#' @param x_ctrl a \code{tibble} or data frame that contains observed pre-treatment variables of the control group
-#' @param y_ctrl a vector of outcomes of the control group
-#' @param gamma_select a matrix that contains choices of sensitivity parameters in rows
+#' @param x_trt a \code{tibble} or data frame with observed pre-treatment variables for the treatment group
+#' @param y_trt a vector with outcomes for the treatment group
+#' @param x_ctrl a \code{tibble} or data frame with observed pre-treatment variables for the control group
+#' @param y_ctrl a vector with outcomes for the control group
+#' @param gamma_select a matrix with selected settings for sensitivity parameters in rows
 #' 
+#' 
+#' @section Details: 
+#'          For analysis details, please see \code{\link{heatmap_qte}} 
 #' 
 #' @export
 #' 
 #' @examples 
-#' ## Observed data in treatment group ##
+#' # Observed data in treatment group
 #' NHANES_trt <- NHANES %>% dplyr::filter(trt_dbp == 1)
 #' x_trt <- NHANES_trt %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_trt <- NHANES_trt %>% select(ave_dbp)
 #'
-#' ## Observed data in control group ##
+#' # Observed data in control group
 #' NHANES_ctrl <- NHANES %>% dplyr::filter(trt_dbp == 0)
 #' x_ctrl <- NHANES_ctrl %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 #' 
-#' ## Ribbon Plot of QTE ##
+#' # Ribbon Plot of QTE
 #' gamma_select = rbind(c(0, 0), c(-0.03, 0.05), c(0.05, -0.02), c(-0.01, 0.01))
 #' ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select)
 #' ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = TRUE)
 
 
-ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE){
+ribbon_qte <- function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE){
   
   if(joint){
     ## joint dataset ##
-    x_joint = rbind(x_trt, x_ctrl)
-    trt = c(rep(1, nrow(x_trt)), rep(0, nrow(x_ctrl)))
-    x_train_joint = cbind(x_joint, trt)  ## trt as a predictor when joint = T
-    x_test_joint = cbind(x_joint, 1-trt)
-    y_train_joint = rbind(y_trt, y_ctrl)
+    x_joint <- rbind(x_trt, x_ctrl)
+    trt <- c(rep(1, nrow(x_trt)), rep(0, nrow(x_ctrl)))
+    x_train_joint <- cbind(x_joint, trt)  ## trt as a predictor when joint = T
+    x_test_joint <- cbind(x_joint, 1-trt)
+    y_train_joint <- rbind(y_trt, y_ctrl)
     
     ## jointly fit the model using BART ##
     joint_bart_fit <- BART::wbart(as.matrix(x_train_joint), as.matrix(y_train_joint), x.test=as.matrix(x_test_joint))
@@ -57,15 +61,15 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
       matrix(sigma_joint^2, nrow = nrow(mu_trt_test_joint), ncol=ncol(mu_trt_test_joint)) %o% gamma_select[, 2]
     
     
-    nsample = nrow(mu_trt_obs_joint)
-    n = nrow(y_trt) + nrow(y_ctrl)
-    probs = seq(0.05, 0.95, by = 0.05)
+    nsample <- nrow(mu_trt_obs_joint)
+    n <- nrow(y_trt) + nrow(y_ctrl)
+    probs <- seq(0.05, 0.95, by = 0.05)
     
     ## Function to Calculate Quantiles ##
-    get_quantile = function(porbs, cumfun, xmin_init, xmax_init, prec = 1e-5){
-      binary_search = function(prob, xmin, xmax){
-        xmid = (xmin + xmax)/2
-        prob_mid = cumfun(xmid)
+    get_quantile <- function(porbs, cumfun, xmin_init, xmax_init, prec = 1e-5){
+      binary_search <- function(prob, xmin, xmax){
+        xmid <- (xmin + xmax)/2
+        prob_mid <- cumfun(xmid)
         
         if(abs(prob - prob_mid) < prec)
           return(xmid)
@@ -75,16 +79,16 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
           return(binary_search(prob, xmin, xmid))
       }
       
-      ord = order(probs)
-      qmin  = xmin_init
+      ord <- order(probs)
+      qmin  <- xmin_init
       sapply(sort(probs), function(prob){
-        cur = binary_search(prob, qmin, xmax_init)
-        qmin = cur
+        cur <- binary_search(prob, qmin, xmax_init)
+        qmin <- cur
       })[ord]
     }
     
     ## QTE Array: n(draws)*n(gamma)*n(probs) ##
-    qte = array(dim=c(nsample, nrow(gamma_select), length(probs)))
+    qte <- array(dim=c(nsample, nrow(gamma_select), length(probs)))
     for(i in 1:nsample)
     {
       print(i)
@@ -92,34 +96,34 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
       {
         print(k)
         ## complete distribution of Y(0) ##
-        Y0comp_cum = Vectorize(function(y)
+        Y0comp_cum <- Vectorize(function(y)
           1/n*sum(c(pnorm(y, mu_ctrl_obs_joint[i,], sigma_joint[i]), 
                     pnorm(y, mu_ctrl_test_joint_corrected_select[i, ,k], sigma_joint[i]))))
         ## complete distribution of Y(1) ##
-        Y1comp_cum = Vectorize(function(y)
+        Y1comp_cum <- Vectorize(function(y)
           1/n*sum(c(pnorm(y, mu_trt_obs_joint[i,], sigma_joint[i]), 
                     pnorm(y, mu_trt_test_joint_corrected_select[i, ,k], sigma_joint[i]))))
         
-        q0 = get_quantile(probs, function(y) Y0comp_cum(y), -1000, 1000)
+        q0 <- get_quantile(probs, function(y) Y0comp_cum(y), -1000, 1000)
         
-        q1 = get_quantile(probs, function(y) Y1comp_cum(y), -1000, 1000)
+        q1 <- get_quantile(probs, function(y) Y1comp_cum(y), -1000, 1000)
         
-        qte[i, k, ] = q1 - q0
+        qte[i, k, ] <- q1 - q0
       }
     }
     
-    q025 = apply(qte, c(2, 3), function(x) quantile(x, 0.025))
-    q975 = apply(qte, c(2, 3), function(x) quantile(x, 0.975))
+    q025 <- apply(qte, c(2, 3), function(x) quantile(x, 0.025))
+    q975 <- apply(qte, c(2, 3), function(x) quantile(x, 0.975))
     
     SensitivityParams <- factor(rep(apply(gamma_select, 1, function(x) paste(x, collapse=", ")), 
                                     length(probs)))
     
     gg_color_hue <- function(n) {
-      hues = seq(15, 375, length = n + 1)
-      hcl(h = hues, l = 65, c = 100)[1:n]
+      hues <- seq(15, 375, length = n + 1)
+      hcl(h <- hues, l = 65, c = 100)[1:n]
     }
     
-    ribbon_plot = 
+    ribbon_plot <- 
       tibble(q025=as.vector(q025), q975=as.vector(q975), ## vectorize by column
            quantile = rep(probs, each=nrow(gamma_select)),  ## repeat each element of qtiles n(gamma_select)= 4 times
            SensitivityParams=SensitivityParams) %>%
@@ -140,16 +144,16 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
   if(!joint){
   
     # Observed X and y in T=1 #
-    x_train_trt = x_trt
-    y_train_trt = y_trt
+    x_train_trt <- x_trt
+    y_train_trt <- y_trt
     
     # Observed X and y in T=0 #
-    x_train_ctrl = x_ctrl
-    y_train_ctrl = y_ctrl
+    x_train_ctrl <- x_ctrl
+    y_train_ctrl <- y_ctrl
     
     # X for missing outcomes #
-    x_test_trt = x_ctrl
-    x_test_ctrl = x_trt
+    x_test_trt <- x_ctrl
+    x_test_ctrl <- x_trt
   
     # Fitting Bart for T=1 #
     trt_bart_fit <- BART::wbart(as.matrix(x_train_trt), as.matrix(y_train_trt), as.matrix(x_test_trt))
@@ -176,14 +180,14 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
       matrix(sig_trt_obs^2, nrow=nrow(mu_trt_test), ncol=ncol(mu_trt_test)) %o% gamma_select[, 2]
     
     
-    nsample = nrow(mu_trt_obs)
-    n = nrow(y_trt) + nrow(y_ctrl)
-    probs = seq(0.05, 0.95, by = 0.05)
+    nsample <- nrow(mu_trt_obs)
+    n <- nrow(y_trt) + nrow(y_ctrl)
+    probs <- seq(0.05, 0.95, by = 0.05)
   
-    get_quantile = function(porbs, cumfun, xmin_init, xmax_init, prec = 1e-5){
-      binary_search = function(prob, xmin, xmax){
-        xmid = (xmin + xmax)/2
-        prob_mid = cumfun(xmid)
+    get_quantile <- function(porbs, cumfun, xmin_init, xmax_init, prec = 1e-5){
+      binary_search <- function(prob, xmin, xmax){
+        xmid <- (xmin + xmax)/2
+        prob_mid <- cumfun(xmid)
         
         if(abs(prob - prob_mid) < prec)
           return(xmid)
@@ -193,15 +197,15 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
           return(binary_search(prob, xmin, xmid))
       }
       
-      ord = order(probs)
-      qmin  = xmin_init
+      ord <- order(probs)
+      qmin  <- xmin_init
       sapply(sort(probs), function(prob){
-        cur = binary_search(prob, qmin, xmax_init)
-        qmin = cur
+        cur <- binary_search(prob, qmin, xmax_init)
+        qmin <- cur
       })[ord]
     }
   
-    qte = array(dim=c(nsample, nrow(gamma_select), length(probs)))
+    qte <- array(dim=c(nsample, nrow(gamma_select), length(probs)))
     for(i in 1:nsample)
     {
       print(i)
@@ -209,34 +213,34 @@ ribbon_qte = function(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = FALSE)
       {
         print(k)
         ## complete distribution of Y(0) ##
-        Y0comp_cum = Vectorize(function(y)
+        Y0comp_cum <- Vectorize(function(y)
           1/n*sum(c(pnorm(y, mu_ctrl_obs[i,], sig_ctrl_obs[i]), 
                     pnorm(y, mu_ctrl_test_corrected_select[i, ,k], sig_ctrl_obs[i]))))
         ## complete distribution of Y(1) ##
-        Y1comp_cum = Vectorize(function(y)
+        Y1comp_cum <- Vectorize(function(y)
           1/n*sum(c(pnorm(y, mu_trt_obs[i,], sig_trt_obs[i]), 
                     pnorm(y, mu_trt_test_corrected_select[i, ,k], sig_trt_obs[i]))))
         
-        q0 = get_quantile(probs, function(y) Y0comp_cum(y), -1000, 1000)
+        q0 <- get_quantile(probs, function(y) Y0comp_cum(y), -1000, 1000)
         
-        q1 = get_quantile(probs, function(y) Y1comp_cum(y), -1000, 1000)
+        q1 <- get_quantile(probs, function(y) Y1comp_cum(y), -1000, 1000)
         
-        qte[i, k, ] = q1 - q0
+        qte[i, k, ] <- q1 - q0
       }
     }
     
-    q025 = apply(qte, c(2, 3), function(x) quantile(x, 0.025))
-    q975 = apply(qte, c(2, 3), function(x) quantile(x, 0.975))
+    q025 <- apply(qte, c(2, 3), function(x) quantile(x, 0.025))
+    q975 <- apply(qte, c(2, 3), function(x) quantile(x, 0.975))
     
     SensitivityParams <- factor(rep(apply(gamma_select, 1, function(x) paste(x, collapse=", ")), 
                                     length(probs)))
     
     gg_color_hue <- function(n) {
-      hues = seq(15, 375, length = n + 1)
+      hues <- seq(15, 375, length = n + 1)
       hcl(h = hues, l = 65, c = 100)[1:n]
     }
   
-    ribbon_plot = 
+    ribbon_plot <- 
       tibble(q025=as.vector(q025), q975=as.vector(q975), ## vectorize by column
            quantile = rep(probs, each=nrow(gamma_select)),  ## repeat each element of qtiles n(gamma_select)=4 times
            SensitivityParams=SensitivityParams) %>%

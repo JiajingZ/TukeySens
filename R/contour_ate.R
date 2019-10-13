@@ -1,37 +1,36 @@
-#' @title Visualize ATE estimates by Contour Plot
+#' @title Visualize ATE Estimates by Contour Plot
 #'
 #' @description Visualize the same level of Average Treatment Effect (ATE)
-#'              for different choices of sensitivity parameters by contour lines. 
+#'              for different choices of sensitivity parameters with contour lines. 
 #' @usage contour_ate(x_trt, y_trt, x_ctrl, y_ctrl, 
 #'             largest_effect, gamma_length = 11, ...)
-#' @param x_trt a \code{tibble} or data frame that contains observed pre-treatment variables of the treatment group
-#' @param y_trt a vector of outcomes of the treatment group
-#' @param x_ctrl a \code{tibble} or data frame that contains observed pre-treatment variables of the control group
-#' @param y_ctrl a vector of outcomes of the control group
-#' @param largest_effect the largest magnitude of sensitivity parameter to be investigated
-#' @param gamma_length desired length of sensitivity parameter sequence, which needs to be an odd integer
+#' @param x_trt a \code{tibble} or data frame with observed pre-treatment variables for the treatment group
+#' @param y_trt a vector with outcomes for the treatment group
+#' @param x_ctrl a \code{tibble} or data frame with observed pre-treatment variables for the control group
+#' @param y_ctrl a vector with outcomes for the control group
+#' @param largest_effect the largest magnitude of sensitivity parameter to be considered, chosen from \code{\link{caliplot}}
+#' @param gamma_length chosen length of sensitivity parameter sequence, which needs to be an odd integer
 #' @param joint logical. If TURE, the mean surface and residual variance will be estimated jointly for both treatment 
 #'              groups; if FALSE (default), the mean surface and residual variance will be estimated independently for
 #'              each treatment group.
-#' @param ... additional argument to be passed to the function \code{BART::wbart}
+#' @param ... arguments passed to the function \code{BART::wbart}
 #' @section Details: 
-#'          The treatment assignment model is specified as:
-#'          \deqn{f(T=1 \mid Y(t),X) = \text{logit}^{-1}\{ \alpha_t(X)+\gamma_t's_t(Y(t)) \}}
+#'          For analysis details, please see \code{\link{heatmap_ate}}
 #'          
 #' @export
 #'
 #' @examples
-#' ## Observed data in treatment group ##
+#' # Observed data in treatment group 
 #' NHANES_trt <- NHANES %>% dplyr::filter(trt_dbp == 1)
 #' x_trt <- NHANES_trt %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_trt <- NHANES_trt %>% select(ave_dbp)
 #'
-#' ## Observed data in control group ##
+#' # Observed data in control group
 #' NHANES_ctrl <- NHANES %>% dplyr::filter(trt_dbp == 0)
 #' x_ctrl <- NHANES_ctrl %>% select(-one_of("trt_dbp", "ave_dbp"))
 #' y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 #' 
-#' ## ATE Contour Plot ##
+#' # ATE Contour Plot 
 #' contour_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05)
 #' contour_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
 

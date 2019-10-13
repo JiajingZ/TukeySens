@@ -3,10 +3,10 @@
 #' @description Calibrate the magnitude of sensitivity parameters to the amount of variation in the treatment 
 #'              assignment \code{T} that is explained by outcome \code{Y(t)}, above and beyond what is accounted
 #'              for by observed pre-treatment variables \code{X}.
-#' @param x a \code{tibble} or data frame of observed pre-treatment variables
-#' @param trt a vector of binary treatment indicators
-#' @param y a vector of outcomes
-#' @param gamma_seq a vector of values for sensitivity parameter \eqn{\gamma_t} to be investiaged
+#' @param x a \code{tibble} or data frame with observed pre-treatment variables
+#' @param trt a vector with binary treatment indicators
+#' @param y a vector with outcomes
+#' @param gamma_seq a vector with chosen values for sensitivity parameter \eqn{\gamma_t} 
 #' @section Details: \code{caliplot} returns a plot of sensitivity parameter \eqn{\gamma_t} vs partial coefficient of 
 #'          variation from outcome \code{Y}, \eqn{\rho^2_{Y|X}}. For comparison, the largest four partial coefficients 
 #'          of variation from covariates are also plotted if the number of observed covariates is larger or equal to four;
@@ -14,19 +14,19 @@
 #' @export
 #'
 #' @examples
-#' # Observed Pre-treatment Variables #
+#' # Observed Pre-treatment Variables 
 #' x = NHANES %>% select(-one_of("trt_dbp", "ave_dbp"))
 #'
-#' # Treatment #
+#' # Treatment 
 #' trt = NHANES %>% select(trt_dbp)
 #'
-#' # Outcomes #
+#' # Outcomes 
 #' y = NHANES %>% select(ave_dbp)
 #'
-#' # Sensitivity Parameter Sequence #
+#' # Sensitivity Parameter Sequence 
 #' gamma = seq(0.01, 0.1, by = 0.001)
 #'
-#' # plot #
+#' # plot 
 #' caliplot(x, trt, y, gamma)
 
 
