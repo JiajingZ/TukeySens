@@ -21,5 +21,6 @@ Imports:
 Depends:
     R (>= 3.5.1),
     tidyverse (>= 1.2.1)
+    superheat
 Remotes: 
     github::rlbarter/superheat
