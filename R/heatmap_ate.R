@@ -104,7 +104,7 @@ if(joint){
   rownames(te_mat_joint) <- gamma_1
 
   superheat::superheat(te_mat_joint,
-            heat.pal = c("blue", "light blue", "white", "orange", "red"),
+            heat.pal = rev(c("#d7191c","#fdae61","#ffffbf","#abd9e9", "#2c7bb6")),
             heat.lim = round(c(-max(abs(ate_mean_joint)), max(abs(ate_mean_joint)))),
             title = "Heat Map for ATE",
             title.alignment = "center",
@@ -182,7 +182,7 @@ if (!joint){
    ns_elements_indep[ns_elements_bool] <- "NS"
 
    superheat::superheat(te_mat,
-             heat.pal = c("blue", "light blue", "white", "orange", "red"),
+             heat.pal = rev(c("#d7191c","#fdae61","#ffffbf","#abd9e9", "#2c7bb6")),
              heat.lim = round(c(-max(abs(ate_mean)), max(abs(ate_mean)))),
              title = "Heat Map for ATE",
              title.alignment = "center",
