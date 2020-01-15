@@ -18,9 +18,8 @@ RoxygenNote: 6.1.1
 Imports:
     BART (>= 1.9),
     directlabels (>= 2018.05.22),
-    superheat (>= 1.0.0)
+    Remotes: github::rlbarter/superheat
 Depends:
     R (>= 3.5.1),
     tidyverse (>= 1.2.1)
-Remotes: 
-    github::rlbarter/superheat
+
