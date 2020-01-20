@@ -93,7 +93,7 @@ qte_plot <- function(tukeyFit, gamma_select=NULL){
   xmax <- qnorm(max(probs), mean=max_mu, sd=max_sigma)
   
   qte <- array(dim=c(nsample, nrow(gamma_select), length(probs)))
-  pb <- progress_bar$new(format = " computing quantiles [:bar] :percent eta: :eta ", total = nsample*nrow(gamma_select), clear = FALSE, width=60)
+  pb <- progress::progress_bar$new(format = " computing quantiles [:bar] :percent eta: :eta ", total = nsample*nrow(gamma_select), clear = FALSE, width=60)
   for(i in 1:nsample)
   {
     for(k in 1:nrow(gamma_select))
