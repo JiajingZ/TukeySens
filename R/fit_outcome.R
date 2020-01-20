@@ -3,13 +3,13 @@
 #' @description Fit BART outcome models and correcting for range of confounder biases
 #' 
 #' @usage fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, 
-#'             largest_effect, gamma_length = 11)
+#'             largest_effect, num_gamma = 11)
 #' @param x_trt a \code{tibble} or data frame with observed pre-treatment variables for the treatment group
 #' @param y_trt a vector with outcomes for the treatment group
 #' @param x_ctrl a \code{tibble} or data frame with observed pre-treatment variables for the control group
 #' @param y_ctrl a vector with outcomes for the control group
 #' @param largest_gamma the largest magnitude of sensitivity parameter to be considered, chosen from \code{\link{caliplot}}
-#' @param gamma_length chosen length of sensitivity parameter sequence, which needs to be an odd integer
+#' @param num_gamma chosen length of sensitivity parameter sequence, which needs to be an odd integer
 #' @param joint logical. If TRUE, the mean surface and residual variance will be estimated jointly for both treatment 
 #'              groups; if FALSE (default), the mean surface and residual variance will be estimated independently for
 #'              each treatment group.
@@ -47,8 +47,8 @@
 #' y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 #' 
 #' # Fit the models
-#' tukey_out <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05)
-#' tukey_out_joint <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
+#' tukey_out <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma = 0.05)
+#' tukey_out_joint <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma = 0.05, joint = TRUE)
 #' 
 #' 
 #' 
@@ -73,13 +73,13 @@ fit_outcome <- function(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma, num_gamma =
     
     sig_ctrl_obs <- joint_bart_fit$sigma[101:1100]
     sig_trt_obs <- joint_bart_fit$sigma[101:1100]
-        
+    
     nctrl <- ncol(mu_ctrl_obs)
     ntreat <- ncol(mu_ctrl_test)
     q <- rbeta(1000, ntreat + 1, nctrl + 1)
     
-    gamma_0 <- c(seq(from = -largest_effect, to = 0, length.out = (gamma_length + 1) / 2),
-                 seq(from= 0, to = largest_effect, length.out = (gamma_length + 1) / 2)[-1])
+    gamma_0 <- c(seq(from = -largest_gamma, to = 0, length.out = (num_gamma + 1) / 2),
+                 seq(from= 0, to = largest_gamma, length.out = (num_gamma + 1) / 2)[-1])
     gamma_1 <- gamma_0
     gamma_grid <- expand.grid(gamma_0, gamma_1)
     
@@ -94,11 +94,11 @@ fit_outcome <- function(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma, num_gamma =
     ate_mean <- q * att_mean + (1-q) * atc_mean
     
     te_mat <- matrix(apply(ate_mean, 2, mean), byrow = T,
-                           nrow = length(gamma_0), ncol = length(gamma_0))
+                     nrow = length(gamma_0), ncol = length(gamma_0))
     probs1 <- matrix(apply(ate_mean, 2, function(x) mean(x < 0)), byrow = T,
-                           nrow = length(gamma_0), ncol = length(gamma_0))
+                     nrow = length(gamma_0), ncol = length(gamma_0))
     probs2 <- matrix(apply(ate_mean, 2, function(x) mean(x > 0)), byrow = T,
-                           nrow = length(gamma_0), ncol = length(gamma_0))
+                     nrow = length(gamma_0), ncol = length(gamma_0))
     
     ns_elements_bool <- (probs1 > 0.025) & (probs2 > 0.025)
     ns_elements <- matrix("", nrow = nrow(ns_elements_bool), ncol = ncol(ns_elements_bool))
@@ -141,8 +141,8 @@ fit_outcome <- function(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma, num_gamma =
     q <- rbeta(1000, nrow(x_train_trt) + 1, nrow(x_train_ctrl) + 1)
     
     # gamma.grid #
-    gamma_0 <- c(seq(from = -largest_effect, to = 0, length.out = (gamma_length + 1) / 2),
-                 seq(from= 0, to = largest_effect, length.out = (gamma_length + 1) / 2)[-1])
+    gamma_0 <- c(seq(from = -largest_gamma, to = 0, length.out = (num_gamma + 1) / 2),
+                 seq(from= 0, to = largest_gamma, length.out = (num_gamma + 1) / 2)[-1])
     gamma_1 <- gamma_0
     gamma_grid <- expand.grid(gamma_0, gamma_1)
     
@@ -174,13 +174,12 @@ fit_outcome <- function(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma, num_gamma =
     
     
   }
- 
-
-   
+  
   outcome_means <- list(mu_ctrl_obs=mu_ctrl_obs, mu_ctrl_test=mu_ctrl_test, mu_trt_obs=mu_trt_obs, mu_trt_test=mu_trt_test)
   outcome_sds <- list(sig_ctrl_obs=sig_ctrl_obs, sig_trt_obs = sig_trt_obs)
   
-  tukeyFit <- list(te_mat, ate_mean, outcome_means=outcome_means, outcome_sds=outcome_sds, ns_elements=ns_elements)
-  structure(tukeyFit, "tukeyFit")
+  tukeyFit <- list(te_mat=te_mat, ate_mean=ate_mean, outcome_means=outcome_means, outcome_sds=outcome_sds, ns_elements=ns_elements,
+                   gamma0=gamma_0, gamma1=gamma_1)
+  structure(tukeyFit, class="tukeyFit")
   
 }

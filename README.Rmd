@@ -33,7 +33,7 @@ library(TukeySens)
 
 
 ## Calibration
-```{r,}
+```{r}
 # Observed Pre-treatment Variables 
 x = NHANES %>% select(-one_of("trt_dbp", "ave_dbp"))
 # Treatment 

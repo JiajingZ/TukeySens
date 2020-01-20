@@ -6,6 +6,9 @@
 #'
 #'
 #' @examples
+#' 
+#' @export
+#' 
 plot.tukeyFit <- function(tukeyFit, type = "ate", ...) {
   
   stopifnot(class(tukeyFit)=="tukeyFit")
