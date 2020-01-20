@@ -75,8 +75,7 @@ caliplot <- function( x, trt, y, gamma_seq){
                aes(yintercept = toplot, col=Predictor), linetype="dashed", size = 1.2) +
     xlab(expression(gamma[t])) + ylab(substitute(rho[m]^2, list(m = "Y|X"))) +
     guides(color = guide_legend(title = substitute(rho[m]^2, list(m = bquote(X[j]~"|"~X[-j]))),
-                              title.hjust = 0.5, legend.title = element_text(size = 14))) +
+                                title.hjust = 0.5, legend.title = element_text(size = 14))) +
+    theme_bw() +
     theme(axis.title = element_text(size = 20), axis.text = element_text(size = 16))
 }
-
-
