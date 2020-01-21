@@ -90,11 +90,6 @@ plot(tukey_out, type="ate")
 
 ![](man/figures/figures-unnamed-chunk-7-1.png)<!-- -->
 
-``` r
-# fit outcome jointly
-heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
-```
-
 ## QTE by Ribbon Plot
 
 ``` r
@@ -105,4 +100,4 @@ gamma_select = rbind(c(0, 0), c(-0.03, 0.05), c(0.05, -0.02), c(-0.01, 0.01))
 plot(tukey_out, type="qte", gamma_select = gamma_select)
 ```
 
-![](man/figures/figures-unnamed-chunk-9-1.png)<!-- -->
+![](man/figures/figures-unnamed-chunk-8-1.png)<!-- -->

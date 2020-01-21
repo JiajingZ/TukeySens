@@ -52,7 +52,7 @@ Based on the above plot, we may want to limit the magnitude of sensitivity param
 
 Fit the BART outcome model.  `largest_gamma` is the absolute magnitude of the largest sensitivity parameter for Y(0) and Y(1). `joint` is a logical which determines whether we infer Y(0) and Y(1) models independently or together.
 
-```{r, message = F, warning = F, eval = F}
+```{r, message = F, warning = F, include=F, eval = TRUE, cache=TRUE}
 # Observed data in treatment group
 NHANES_trt <- NHANES %>% dplyr::filter(trt_dbp == 1)
 x_trt <- NHANES_trt %>% select(-one_of("trt_dbp", "ave_dbp"))
@@ -64,7 +64,20 @@ x_ctrl <- NHANES_ctrl %>% select(-one_of("trt_dbp", "ave_dbp"))
 y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
 
 tukey_out <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma = 0.05, joint=FALSE)
+```
 
+```{r, message = F, warning = F, eval = FALSE}
+# Observed data in treatment group
+NHANES_trt <- NHANES %>% dplyr::filter(trt_dbp == 1)
+x_trt <- NHANES_trt %>% select(-one_of("trt_dbp", "ave_dbp"))
+y_trt <- NHANES_trt %>% select(ave_dbp)
+
+# Observed data in control group 
+NHANES_ctrl <- NHANES %>% dplyr::filter(trt_dbp == 0)
+x_ctrl <- NHANES_ctrl %>% select(-one_of("trt_dbp", "ave_dbp"))
+y_ctrl <- NHANES_ctrl %>% select(ave_dbp)
+
+tukey_out <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma = 0.05, joint=FALSE)
 ```
 
 
@@ -74,37 +87,19 @@ tukey_out <- fit_outcome(x_trt, y_trt, x_ctrl, y_ctrl, largest_gamma = 0.05, joi
 We can plot a heatmap of the resulting model fit using the standard plot function with `type="ate"`.  Alternatively, we can visualize ribbon plots of the quantile treatment effects with `type="ate"`.  Note that in the current implementation QTE visualization can be slow for large datasets, since we are computing quantiles of n-component normal mixtures.
 
 ### ATE by Heatmap
-```{r, message = F, warning = F, eval = F}
 
-
+```{r, message = F, warning = F, eval = TRUE, cache=TRUE}
 # ATE Heatmap 
-# fit outcome separately
-
 
 plot(tukey_out, type="ate")
-
-plot(tukey_out, type="qte")
 ```
-![](man/figures/heatmap_ate_separate.png)
-
-```{r, eval = F}
-# fit outcome jointly
-heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
-```
-![](man/figures/heatmap_ate_joint.png)
 
 ## QTE by Ribbon Plot
 
-```{r, warning = F, message = F, eval = F}
+```{r, warning = F, message = F, eval = TRUE, cache=TRUE}
+
 # Ribbon Plot of QTE
 gamma_select = rbind(c(0, 0), c(-0.03, 0.05), c(0.05, -0.02), c(-0.01, 0.01))
-ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select)
-```
-![](man/figures/ribbon_qte_separate.png)
 
-```{r, eval = F}
-ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = TRUE)
+plot(tukey_out, type="qte", gamma_select = gamma_select)
 ```
-![](man/figures/ribbon_qte_pooled.png)
-
-In addition, the ATE can be visualized by contour plot and QTE can be visualized by heatmap plot.
