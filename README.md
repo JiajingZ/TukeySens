@@ -83,41 +83,26 @@ since we are computing quantiles of n-component normal mixtures.
 ### ATE by Heatmap
 
 ``` r
-
-
 # ATE Heatmap 
-# fit outcome separately
-
 
 plot(tukey_out, type="ate")
-
-plot(tukey_out, type="qte")
 ```
 
-![](man/figures/heatmap_ate_separate.png)
+![](man/figures/figures-unnamed-chunk-7-1.png)<!-- -->
 
 ``` r
 # fit outcome jointly
 heatmap_ate(x_trt, y_trt, x_ctrl, y_ctrl, largest_effect = 0.05, joint = TRUE)
 ```
 
-![](man/figures/heatmap_ate_joint.png)
-
 ## QTE by Ribbon Plot
 
 ``` r
+
 # Ribbon Plot of QTE
 gamma_select = rbind(c(0, 0), c(-0.03, 0.05), c(0.05, -0.02), c(-0.01, 0.01))
-ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select)
+
+plot(tukey_out, type="qte", gamma_select = gamma_select)
 ```
 
-![](man/figures/ribbon_qte_separate.png)
-
-``` r
-ribbon_qte(x_trt, y_trt, x_ctrl, y_ctrl, gamma_select, joint = TRUE)
-```
-
-![](man/figures/ribbon_qte_pooled.png)
-
-In addition, the ATE can be visualized by contour plot and QTE can be
-visualized by heatmap plot.
+![](man/figures/figures-unnamed-chunk-9-1.png)<!-- -->
